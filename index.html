@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>英语面试 · 随机抽题</title>
+<style>
+  :root{
+    --bg:#000;
+    --ink:#f5f5f7;
+    --muted:#86868b;
+    --line:rgba(255,255,255,.12);
+    --card:rgba(255,255,255,.06);
+    --accent:#2997ff;
+    --accent2:#a06bff;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue","PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  /* ambient glow */
+  .glow{
+    position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(60% 45% at 50% -5%, rgba(41,151,255,.28), transparent 70%),
+      radial-gradient(45% 40% at 85% 105%, rgba(160,107,255,.20), transparent 70%),
+      radial-gradient(45% 40% at 12% 100%, rgba(255,55,95,.12), transparent 70%);
+    filter:saturate(1.1);
+  }
+  header{
+    position:relative;z-index:2;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:22px clamp(18px,4vw,44px);
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 12px rgba(41,151,255,.8)}
+  .counter{font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+
+  main{
+    position:relative;z-index:2;
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:10px clamp(18px,5vw,60px);
+    text-align:center;gap:26px;
+  }
+  .stage{max-width:1000px;width:100%;display:flex;flex-direction:column;align-items:center;gap:22px}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);
+    opacity:0;transform:translateY(8px);
+    transition:opacity .5s var(--ease), transform .5s var(--ease);
+  }
+  .kicker.show{opacity:1;transform:none}
+  .question{
+    font-size:clamp(30px,6.2vw,68px);
+    line-height:1.08;
+    font-weight:600;
+    letter-spacing:-.025em;
+    background:linear-gradient(180deg,#fff 30%, #b9b9c3 130%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    max-width:16ch;
+    transition:opacity .5s var(--ease), transform .6s var(--ease), filter .6s var(--ease);
+  }
+  .question.idle{
+    font-size:clamp(22px,3.6vw,34px);font-weight:500;max-width:20ch;
+    background:none;-webkit-text-fill-color:var(--muted);color:var(--muted);
+  }
+  .qzh{
+    font-size:clamp(15px,2vw,20px);
+    color:var(--muted);font-weight:400;letter-spacing:.01em;
+    max-width:26ch;
+    opacity:0;transform:translateY(10px);
+    transition:opacity .5s var(--ease) .05s, transform .6s var(--ease) .05s;
+  }
+  .qzh.show{opacity:1;transform:none}
+  .hint{
+    font-size:13px;color:var(--muted);letter-spacing:.02em;
+    display:flex;align-items:center;gap:8px;justify-content:center;
+  }
+  .hint .pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+
+  /* listening mode */
+  .listening{display:none;flex-direction:column;align-items:center;gap:22px}
+  .stage.listening-mode .listening{display:flex}
+  .stage.listening-mode .question,
+  .stage.listening-mode .qzh{display:none}
+  .bars{display:flex;align-items:flex-end;gap:8px;height:70px}
+  .bars span{width:9px;height:18px;border-radius:6px;background:linear-gradient(180deg,var(--accent),var(--accent2));box-shadow:0 0 18px rgba(41,151,255,.5);animation:eq 1.05s ease-in-out infinite}
+  .bars span:nth-child(1){animation-delay:-.9s}
+  .bars span:nth-child(2){animation-delay:-.6s}
+  .bars span:nth-child(3){animation-delay:-.3s}
+  .bars span:nth-child(4){animation-delay:-.75s}
+  .bars span:nth-child(5){animation-delay:-.45s}
+  @keyframes eq{0%,100%{height:16px;opacity:.45}50%{height:66px;opacity:1}}
+  .listen-text{font-size:clamp(15px,2vw,19px);color:var(--muted);letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+
+  .anim-in{animation:riseIn .7s var(--ease) both}
+  @keyframes riseIn{
+    from{opacity:0;transform:translateY(26px) scale(.97);filter:blur(8px)}
+    to{opacity:1;transform:none;filter:blur(0)}
+  }
+
+  /* Answer panel */
+  .answer{
+    width:100%;max-width:860px;
+    display:flex;flex-direction:column;gap:14px;
+    max-height:0;overflow:hidden;opacity:0;
+    transition:max-height .7s var(--ease), opacity .5s var(--ease), margin .5s var(--ease);
+  }
+  .answer.open{max-height:70vh;opacity:1;overflow-y:auto;margin-top:4px;padding-right:6px}
+  .answer::-webkit-scrollbar{width:8px}
+  .answer::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:8px}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:22px 24px;
+    backdrop-filter:blur(30px) saturate(1.6);
+    -webkit-backdrop-filter:blur(30px) saturate(1.6);
+    text-align:left;
+    opacity:0;transform:translateY(16px);
+    transition:opacity .55s var(--ease), transform .55s var(--ease);
+  }
+  .answer.open .card{opacity:1;transform:none}
+  .answer.open .card:nth-child(2){transition-delay:.08s}
+  .label{
+    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px;
+  }
+  .label.zh{color:var(--accent2)}
+  .mini{
+    margin-left:auto;font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.06em;
+    text-transform:none;padding:5px 12px;border-radius:980px;cursor:pointer;
+    border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--ink);
+    transition:all .25s var(--ease);
+  }
+  .mini:hover{background:rgba(255,255,255,.18)}
+  .mini:active{transform:scale(.94)}
+  .card p{font-size:clamp(15px,1.9vw,18px);line-height:1.72;color:#e8e8ed;letter-spacing:.005em}
+  .card p.zh-text{color:#c7c7cc}
+
+  footer{
+    position:relative;z-index:2;
+    padding:18px clamp(18px,4vw,44px) calc(26px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+  }
+  .controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;letter-spacing:.01em;
+    border-radius:980px;padding:14px 26px;cursor:pointer;border:1px solid var(--line);
+    background:rgba(255,255,255,.08);color:var(--ink);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    transition:transform .25s var(--ease), background .25s var(--ease), opacity .25s var(--ease), box-shadow .25s var(--ease);
+  }
+  .btn:hover{background:rgba(255,255,255,.16);transform:translateY(-2px)}
+  .btn:active{transform:scale(.96)}
+  .btn.primary{
+    background:#fff;color:#000;border-color:#fff;padding:15px 40px;font-size:16px;
+    box-shadow:0 10px 34px rgba(255,255,255,.18);
+  }
+  .btn.primary:hover{box-shadow:0 14px 44px rgba(255,255,255,.3)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+  .filters{
+    display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;
+  }
+  .chip{
+    font-family:inherit;font-size:12.5px;font-weight:500;
+    padding:7px 14px;border-radius:980px;cursor:pointer;
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    transition:all .25s var(--ease);white-space:nowrap;
+  }
+  .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+  .chip.active{background:#fff;color:#000;border-color:#fff}
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);
+    background:rgba(255,255,255,.94);color:#000;font-size:13px;font-weight:600;
+    padding:10px 18px;border-radius:980px;opacity:0;pointer-events:none;
+    transition:all .35s var(--ease);z-index:20;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:520px){
+    .btn{padding:12px 18px;font-size:14px}
+    .btn.primary{padding:13px 30px}
+    .card{padding:18px 18px;border-radius:16px}
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<header>
+  <div class="brand"><span class="dot"></span>推免面试 · 英语口语随机抽题</div>
+  <div class="counter" id="counter">0 / 0</div>
+</header>
+
+<main>
+  <section class="stage" id="stage">
+    <div class="kicker" id="kicker">Ready</div>
+    <div class="listening" id="listening">
+      <div class="bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="listen-text" id="listenText">正在朗读题目 · 请仔细听</div>
+    </div>
+    <h1 class="question idle" id="question">点击下方「抽题」开始<br>题目将自动朗读</h1>
+    <div class="qzh" id="qzh"></div>
+    <div class="hint" id="hint"><span class="pulse"></span>先口头作答，再决定是否看参考答案</div>
+  </section>
+
+  <section class="answer" id="answer">
+    <div class="card">
+      <div class="label">Reference Answer · English<button class="mini" id="speakAnsEn">朗读</button></div>
+      <p id="answerEn"></p>
+    </div>
+    <div class="card">
+      <div class="label zh">参考译文 · 中文<button class="mini" id="speakAnsZh">朗读</button></div>
+      <p class="zh-text" id="answerZh"></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="controls">
+    <button class="btn primary" id="drawBtn">抽 题</button>
+    <button class="btn" id="speakBtn" disabled>重听题目</button>
+    <button class="btn" id="showQBtn" disabled>显示题目</button>
+    <button class="btn" id="revealBtn" disabled>显示参考答案</button>
+  </div>
+  <div class="filters" id="filters"></div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const QUESTIONS = [
+  // Part 1
+  {part:"自我介绍", en:"Please introduce yourself.", zh:"请做自我介绍。",
+   aen:`Good morning, dear professors. My name is Zhu Qilin. I come from Hengyang, Hunan Province. I am a junior student majoring in Transportation Engineering at Changsha University of Science and Technology. I rank 5th out of 80 students in my major, with a GPA of 3.60 out of 4.00, and I got full grades in 39 courses. My CET-4 score is 433, and I can read English academic papers independently. During my undergraduate study, I completed a machine learning project on traffic accident analysis, which I am most proud of. I cleaned more than 60,000 accident records, built Random Forest and Logistic Regression models using Python, and built a traffic safety evaluation system. I also led a provincial innovation project, and my paper is now under review. I am very interested in intelligent transportation and traffic big data, and I really want to study at Chang'an University. Thank you!`,
+   azh:`早上好，各位老师。我叫朱麒麟，来自湖南衡阳，是长沙理工大学交通运输专业大三学生，专业排名5/80，GPA 3.60/4.00，39门课程满绩点，CET-4 433分，能独立阅读英文学术论文。本科期间我完成了一个交通事故数据的机器学习分析项目，这是我最自豪的经历：我清洗了6万多条事故数据，用Python构建了随机森林和逻辑回归模型，建立了交通安全评估体系。我还主持了一项省级创新项目，论文正在审稿。我对智能交通和交通大数据很感兴趣，非常希望能在长安大学学习。谢谢！`},
+  {part:"自我介绍", en:"Please give a brief self-introduction.", zh:"请简短自我介绍。",
+   aen:`Good morning, professors. I am Zhu Qilin, a junior from Changsha University of Science and Technology, majoring in Transportation Engineering. I rank 5th in my class of 80 students. I have done a machine learning project on traffic accident data using Python, which made me interested in intelligent transportation. I also worked as a class monitor and organized many competitions. I am eager to study at Chang'an University. Thank you.`,
+   azh:`早上好，各位老师。我是朱麒麟，长沙理工大学交通运输专业大三学生，80人中排名第5。我用Python做过交通事故数据机器学习项目，这让我对智能交通产生了兴趣。我还担任班级学习委员，组织过很多竞赛。我渴望在长安大学学习。谢谢。`},
+  // Part 2
+  {part:"基本信息", en:"Where are you from?", zh:"你来自哪里？",
+   aen:`I come from Hengyang, a city in Hunan Province. It is a beautiful city famous for Mount Heng, one of the Five Great Mountains in China.`,
+   azh:`我来自湖南衡阳，一个美丽的城市，以五岳之一的衡山闻名。`},
+  {part:"基本信息", en:"Can you introduce your hometown?", zh:"能介绍下你的家乡吗？",
+   aen:`Hengyang is an important transportation hub in central China. It has a long history and developed logistics industry. Growing up there, I have seen how transportation connects people and cities, which may be one reason I chose this major.`,
+   azh:`衡阳是中国中部重要的交通枢纽，历史悠久，物流产业发达。在那里长大让我看到交通如何连接人与城市，这可能是我选择这个专业的原因之一。`},
+  {part:"基本信息", en:"What are your hobbies?", zh:"你有什么爱好？",
+   aen:`I like sports, especially running and basketball. Sports help me keep healthy and relieve stress. I also enjoy reading, mostly books about technology and transportation.`,
+   azh:`我喜欢运动，尤其是跑步和篮球。运动让我保持健康、缓解压力。我也喜欢阅读，主要读科技和交通类书籍。`},
+  {part:"基本信息", en:"How do you describe your personality?", zh:"你如何描述自己的性格？",
+   aen:`I am a hard-working and responsible person. I am also patient and good at communicating with others. As a class monitor, I often coordinate things between teachers and students, so I have developed strong teamwork and organization skills.`,
+   azh:`我是一个勤奋负责的人，也很有耐心，善于与人沟通。作为学习委员，我经常协调师生事务，因此培养了较强的团队合作和组织能力。`},
+  {part:"基本信息", en:"What is your greatest strength?", zh:"你最大的优点是什么？",
+   aen:`I think my greatest strength is the ability to learn new things quickly by doing projects. For example, I learned machine learning by completing a real traffic accident project, not just from textbooks. I am also very persistent - once I set a goal, I will work hard to achieve it.`,
+   azh:`我觉得最大的优点是能通过做项目快速学习新东西。比如我通过完成真实的交通事故项目学会了机器学习，而不只是看书。我也很坚持，一旦设定目标就会努力达成。`},
+  {part:"基本信息", en:"What is your weakness?", zh:"你的缺点是什么？",
+   aen:`My weakness is that my knowledge of deep learning is not systematic enough, because most of my learning came from project practice. So in graduate school, I plan to study the theories systematically and learn from my senior classmates.`,
+   azh:`我的缺点是对深度学习知识掌握得不够系统，因为大部分学习来自项目实践。所以研究生阶段我会系统学习理论，并向师兄师姐请教。`},
+  // Part 3
+  {part:"教育背景", en:"Why did you choose Transportation Engineering as your major?", zh:"为什么选择交通运输专业？",
+   aen:`First, I think transportation is the lifeline of the national economy, and it is a very meaningful field. Second, I am interested in how data and technology can make transportation safer and more efficient. So I chose this major and I have never regretted it.`,
+   azh:`首先，我认为交通是国民经济的大动脉，是非常有意义的领域。其次，我对数据和技术如何让交通更安全高效感兴趣。所以我选择了这个专业，从未后悔。`},
+  {part:"教育背景", en:"How is your academic performance?", zh:"你的学业成绩怎么样？",
+   aen:`My average score is 87.92, and my GPA is 3.60 out of 4.00. I rank 5th out of 80 students. I got full grades in 39 courses, including probability and statistics, intelligent optimization algorithms, and traffic safety engineering.`,
+   azh:`我的平均分是87.92，GPA 3.60/4.00，专业排名5/80。39门课程满绩点，包括概率论与数理统计、智能优化算法、交通安全工程等。`},
+  {part:"教育背景", en:"Which course do you like most?", zh:"你最喜欢哪门课？",
+   aen:`I like Intelligent Optimization Algorithms most. In this course, I learned linear programming, genetic algorithms and other methods, and I realized how optimization methods can solve real transportation problems, like route planning and facility location.`,
+   azh:`我最喜欢智能优化算法。这门课我学到了线性规划、遗传算法等方法，认识到优化方法可以解决真实的交通问题，比如路径规划和设施选址。`},
+  {part:"教育背景", en:"What is your understanding of your major?", zh:"你如何理解你的专业？",
+   aen:`Transportation engineering is not only about roads and vehicles. It is a comprehensive field combining planning, operation, management and now big data and artificial intelligence. The goal is to build a safe, efficient and green transportation system.`,
+   azh:`交通运输工程不只是道路和车辆，它是一个结合规划、运营、管理以及如今大数据和人工智能的综合领域，目标是构建安全、高效、绿色的交通系统。`},
+  // Part 4
+  {part:"科研项目", en:"Please introduce your research project.", zh:"请介绍你的研究项目。",
+   aen:`My main project is about traffic accident analysis using machine learning. I collected more than 60,000 traffic accident records from a public data platform in Beijing. I did data cleaning and feature engineering with Python and pandas, then built Logistic Regression and Random Forest models. The Random Forest model performed best, and I used feature importance to find key factors causing accidents, such as bad weather, night time and some road conditions. Finally, I built a traffic safety level evaluation system.`,
+   azh:`我的主要项目是用机器学习分析交通事故。我从北京公开数据平台收集了6万多条事故记录，用Python和pandas做数据清洗和特征工程，然后构建逻辑回归和随机森林模型。随机森林表现最好，我用特征重要性找出事故关键因素，比如恶劣天气、夜间时段和一些道路条件。最后我建立了交通安全等级评估体系。`},
+  {part:"科研项目", en:"Why did you choose Random Forest?", zh:"为什么选择随机森林？",
+   aen:`Because accident data has many factors and they affect each other in a non-linear way. Random Forest can capture complex relationships automatically, it handles category features well, and it can output feature importance. It also works well when the data is not balanced.`,
+   azh:`因为事故数据因素多且相互影响是非线性的。随机森林能自动捕捉复杂关系，擅长处理类别特征，还能输出特征重要性，而且在数据不平衡时表现也较好。`},
+  {part:"科研项目", en:"How did you deal with missing data?", zh:"你怎么处理缺失数据？",
+   aen:`I used two methods. For records with too many missing values, I removed them. For the others, I filled the missing values with the mean or the mode of that column, depending on the data type.`,
+   azh:`我用两种方法：缺失值太多的记录直接删除；其余用该列的均值或众数填充，取决于数据类型。`},
+  {part:"科研项目", en:"How did you solve the problem of unbalanced data?", zh:"你怎么解决数据不平衡问题？",
+   aen:`In accident data, minor accidents are much more than severe ones. I used two ways: oversampling methods like SMOTE to create samples of the minority class, and setting class weight in the model. I evaluated the model by recall, F1 score and AUC instead of only accuracy.`,
+   azh:`事故数据中轻微事故远多于严重事故。我用两种方法：用SMOTE等过采样方法生成少数类样本，以及在模型中设置类别权重。我用召回率、F1和AUC评估模型，而不是只看准确率。`},
+  {part:"科研项目", en:"What did you learn from this project?", zh:"你从这个项目中学到了什么？",
+   aen:`I learned the complete process of data-driven research: define the problem, collect and clean data, build models, evaluate results and draw conclusions. More importantly, I realized that the same method can be used for traffic safety early warning in intelligent transportation, which is what I want to study further.`,
+   azh:`我学到了数据驱动研究的完整流程：定义问题、收集清洗数据、构建模型、评估结果、得出结论。更重要的是，我意识到同样的方法可以用于智能交通中的交通安全实时预警，这正是我想深入研究的方向。`},
+  {part:"科研项目", en:"Did you use any other tools besides Python?", zh:"除了Python你还用了其他工具吗？",
+   aen:`Yes. I used SPSS for statistical tests like analysis of variance and chi-square test to check the significance of each factor. And I used Python for the machine learning part, because it is more flexible for building and comparing models.`,
+   azh:`是的。我用SPSS做方差分析、卡方检验等统计检验，验证每个因素的显著性；用Python做机器学习部分，因为它在建模和模型比较上更灵活。`},
+  {part:"科研项目", en:"Do you have any other research experience?", zh:"你还有其他研究经历吗？",
+   aen:`Yes. I also did a logistics network optimization project using MATLAB. We chose the locations of freight hubs and optimized delivery routes, and calculated indicators like vehicle configuration and transportation cost. Besides, I led a provincial innovation project on energy-absorbing structures, and my paper is under review now.`,
+   azh:`有。我还做过一个用MATLAB的物流网络优化项目，选择货运枢纽位置、优化配送路线，并计算车辆配置和运输成本等指标。另外我主持了一个省级创新项目（吸能结构），论文正在审稿。`},
+  // Part 5
+  {part:"选择动机", en:"Why do you want to study at Chang'an University?", zh:"为什么选择长安大学？",
+   aen:`Chang'an University is one of the best universities in China in the field of transportation, especially in highway and intelligent transportation. The transportation engineering school here has strong teachers and many research projects. Also, Xi'an is an important transportation hub in western China, which gives me great opportunities for study and future career.`,
+   azh:`长安大学是中国交通运输领域最好的大学之一，尤其在公路和智能交通方面。这里的运输工程学院师资强、项目多。而且西安是中国西部重要的交通枢纽，为我学习和未来职业提供了很好的机会。`},
+  {part:"选择动机", en:"Why do you choose Professor Dai as your supervisor?", zh:"为什么选择戴喆老师？",
+   aen:`Because my research interest is intelligent transportation and traffic big data, which is exactly Professor Dai's direction. He works on multi-sensor fusion perception and real-time traffic safety warning. I was very impressed by his papers and his national science fund project. I believe I can grow fast in his group, and I also noticed he guides students to win many national awards.`,
+   azh:`因为我的研究兴趣是智能交通和交通大数据，这正是戴老师的方向。他研究多传感器融合感知和实时交通安全预警，他的论文和国家自然科学基金项目给我留下深刻印象。我相信在他的团队能快速成长，而且我注意到他指导学生获得了很多国家级奖项。`},
+  {part:"选择动机", en:"Why do you want to pursue a master's degree?", zh:"为什么想读研？",
+   aen:`Because I found that my undergraduate knowledge is not enough to solve deeper transportation problems. I want to systematically learn machine learning, data mining and intelligent transportation methods, and do real research in this field. A master's degree is the best way for me to achieve this.`,
+   azh:`因为我觉得本科知识不足以解决更深入的交通问题。我想系统学习机器学习、数据挖掘和智能交通方法，在这个领域做真正的研究。读研是实现这一目标的最佳途径。`},
+  {part:"选择动机", en:"Why do you choose this direction instead of traditional transportation planning?", zh:"为什么选择这个方向而不是传统交通规划？",
+   aen:`Because I believe data and artificial intelligence will change transportation fundamentally. My accident data project showed me that data-driven methods can find patterns that traditional experience-based methods cannot. I want to be at the frontier of this change.`,
+   azh:`因为我相信数据和人工智能将从根本上改变交通。我的事故数据项目让我看到，数据驱动方法能发现传统经验方法发现不了的规律。我想站在这个变革的前沿。`},
+  {part:"选择动机", en:"What do you know about Professor Dai's research?", zh:"你对戴老师的研究了解多少？",
+   aen:`I know that Professor Dai works on radar-camera fusion for traffic perception, which means combining millimeter-wave radar and cameras to detect and track vehicles in all weather conditions. He also studies real-time traffic safety warning and intelligent transportation systems. I read his paper about radar and vision fusion for highway vehicle trajectory detection.`,
+   azh:`我知道戴老师研究雷视融合交通感知，即结合毫米波雷达和相机，实现全天候的车辆检测与跟踪。他还研究实时交通安全预警和智能交通系统。我读过他关于雷达视觉融合用于高速公路车辆轨迹检测的论文。`},
+  // Part 6
+  {part:"研究生规划", en:"What is your plan for graduate study?", zh:"你的研究生规划是什么？",
+   aen:`In the first year, I will focus on courses like machine learning and data mining, and read many papers to build a solid theoretical foundation. In the second year, I will join the research projects of my supervisor, start from data processing and model experiments, and try to publish a paper. In the third year, I will finish my thesis with high quality.`,
+   azh:`研一我会专注机器学习、数据挖掘等课程，读大量论文打好理论基础。研二加入导师课题组，从数据处理和模型实验做起，争取发表论文。研三高质量完成学位论文。`},
+  {part:"研究生规划", en:"Do you plan to pursue a PhD in the future?", zh:"你将来打算读博吗？",
+   aen:`At present, my main goal is to finish my master's study and produce good results. If I find I really enjoy research and my work goes well, I will consider continuing to study for a PhD. But now I prefer to focus on the master's stage first.`,
+   azh:`目前我的主要目标是完成硕士学业并做出成果。如果发现自己真的热爱研究且进展顺利，会考虑继续读博。但现在我更想先专注硕士阶段。`},
+  {part:"研究生规划", en:"What is your career plan?", zh:"你的职业规划是什么？",
+   aen:`After graduation, I hope to work in intelligent transportation, for example, in an intelligent transportation company, a traffic big data company, or the smart transportation department of a design institute. I want to apply what I learn to make transportation safer and more efficient.`,
+   azh:`毕业后我希望从事智能交通相关工作，比如智能交通企业、交通大数据公司或设计院智慧交通部门。我想把所学应用到实际，让交通更安全高效。`},
+  {part:"研究生规划", en:"What do you want to learn most in graduate school?", zh:"研究生阶段你最想学什么？",
+   aen:`I want to learn how to apply deep learning and multi-sensor data fusion to real transportation problems, especially traffic safety perception and warning. I also want to improve my academic writing and English ability.`,
+   azh:`我最想学习如何将深度学习和多传感器数据融合应用到真实交通问题中，尤其是交通安全感知与预警。我还想提升学术写作和英语能力。`},
+  // Part 7
+  {part:"专业知识", en:"What is intelligent transportation system (ITS)?", zh:"什么是智能交通系统？",
+   aen:`ITS combines information technology, communication, sensing, control and artificial intelligence in transportation. Its goal is to make transportation safer, more efficient and more environmentally friendly, for example by real-time monitoring, smart traffic signals and traffic prediction.`,
+   azh:`智能交通系统把信息技术、通信、传感、控制和人工智能结合到交通中，目标是让交通更安全、高效、环保，比如实时监测、智能信号灯和交通预测。`},
+  {part:"专业知识", en:"What is multi-sensor fusion?", zh:"什么是多传感器融合？",
+   aen:`Multi-sensor fusion means combining data from different sensors to get more reliable information. For example, cameras are good at recognizing objects but fail in rain or at night, while radar works in all weather but has low resolution. By fusing them, we can detect and track vehicles accurately in all conditions.`,
+   azh:`多传感器融合是指融合不同传感器的数据以获得更可靠的信息。例如相机擅长识别物体但雨天夜间效果差，雷达全天候工作但分辨率低。融合两者就能在各种条件下准确检测和跟踪车辆。`},
+  {part:"专业知识", en:"What is the difference between radar and camera?", zh:"雷达和相机有什么区别？",
+   aen:`Millimeter-wave radar can measure distance and speed accurately and works in all weather, but it cannot recognize the type of object. A camera has high resolution and can recognize cars, people and signs, but it is affected by light and weather. So they complement each other.`,
+   azh:`毫米波雷达测距测速准确且全天候工作，但无法识别物体类型。相机分辨率高，能识别车辆、行人、标志，但受光照天气影响。所以两者互补。`},
+  {part:"专业知识", en:"What is machine learning?", zh:"什么是机器学习？",
+   aen:`Machine learning is a method that lets computers learn patterns from data and make predictions without being explicitly programmed. It includes supervised learning, unsupervised learning and reinforcement learning.`,
+   azh:`机器学习是让计算机从数据中学习规律并做出预测的方法，无需显式编程。包括监督学习、无监督学习和强化学习。`},
+  {part:"专业知识", en:"What is Random Forest?", zh:"什么是随机森林？",
+   aen:`Random Forest is an ensemble learning method made of many decision trees. Each tree is trained on a random subset of data and features, and the final result is decided by voting. It reduces overfitting and works well on complex data.`,
+   azh:`随机森林是由多棵决策树组成的集成学习方法。每棵树在随机子集上训练，最终结果通过投票决定。它能减少过拟合，在复杂数据上表现好。`},
+  {part:"专业知识", en:"How do you evaluate a classification model?", zh:"你如何评估分类模型？",
+   aen:`I use accuracy, precision, recall, F1 score and confusion matrix. For unbalanced data, I focus more on precision, recall, F1 and AUC rather than accuracy.`,
+   azh:`我用准确率、精确率、召回率、F1值和混淆矩阵。对不平衡数据，我更关注精确率、召回率、F1和AUC，而不是准确率。`},
+  {part:"专业知识", en:"What is overfitting?", zh:"什么是过拟合？",
+   aen:`Overfitting means the model performs very well on training data but poorly on new data, because it learns the noise too well. Solutions include adding more data, regularization, cross-validation, simplifying the model and using ensemble methods.`,
+   azh:`过拟合指模型在训练数据上表现很好但在新数据上表现差，因为把噪声也学进去了。解决方法包括增加数据、正则化、交叉验证、简化模型和使用集成方法。`},
+  {part:"专业知识", en:"What is the application of big data in transportation?", zh:"交通大数据有哪些应用？",
+   aen:`Traffic flow prediction, congestion detection, accident risk warning, smart traffic signal control, bus scheduling, and travel demand analysis are typical applications.`,
+   azh:`交通流量预测、拥堵识别、事故风险预警、智能信号控制、公交调度和出行需求分析是典型应用。`},
+  {part:"专业知识", en:"What is V2X?", zh:"什么是V2X（车路协同）？",
+   aen:`V2X means vehicle-to-everything communication, including vehicle-to-vehicle, vehicle-to-infrastructure, vehicle-to-pedestrian and vehicle-to-network. It helps vehicles get real-time information about their surroundings to avoid collisions and drive cooperatively.`,
+   azh:`V2X指车与万物通信，包括车对车、车对路、车对人、车对网。它帮助车辆实时获取周围环境信息，避免碰撞、协同驾驶。`},
+  {part:"专业知识", en:"What are the main factors affecting traffic accidents?", zh:"影响交通事故的主要因素有哪些？",
+   aen:`There are four categories: human factors like driving behavior and fatigue, vehicle factors, road factors like alignment and pavement, and environmental factors like weather and light. Traffic flow factors like speed are also important.`,
+   azh:`主要有四类：人的因素如驾驶行为和疲劳，车辆因素，道路因素如线形和路面，环境因素如天气和光照。交通流因素如速度也很重要。`},
+  // Part 8
+  {part:"个人素质", en:"How do you manage your time when you have many tasks?", zh:"任务多时你如何管理时间？",
+   aen:`I divide tasks by priority and make a to-do list. I finish the most important tasks first, and break big tasks into small steps. During my undergraduate study, I had to balance study, student work and research projects at the same time, so I have developed good time management habits.`,
+   azh:`我按优先级拆分任务并做清单，先完成最重要的，把大任务拆成小步骤。本科期间我同时兼顾学业、学生工作和科研项目，养成了良好的时间管理习惯。`},
+  {part:"个人素质", en:"What will you do if you meet a problem you cannot solve?", zh:"遇到解决不了的问题怎么办？",
+   aen:`First, I will search for related papers and materials to understand the problem. Then I will try to break it into smaller parts. If I still cannot solve it, I will ask my supervisor and senior classmates for help. I am not afraid of difficulties, and I believe every problem is a chance to learn.`,
+   azh:`首先我会查阅相关论文和资料理解问题，然后尝试拆解成小问题。如果还解决不了，我会向导师和师兄师姐请教。我不怕困难，相信每个问题都是学习的机会。`},
+  {part:"个人素质", en:"Do you work well in a team?", zh:"你擅长团队合作吗？",
+   aen:`Yes. As a class monitor and the vice minister of the innovation department, I organized many competitions and activities. I am good at communicating with different people, listening to others' ideas, and coordinating the team to finish tasks together.`,
+   azh:`擅长。作为学习委员和科创部副部长，我组织过很多竞赛和活动。我善于与不同的人沟通，倾听他人想法，协调团队共同完成任务。`},
+  {part:"个人素质", en:"Can you handle pressure?", zh:"你能承受压力吗？",
+   aen:`Yes, I can. Since my sophomore year, I have been doing study, student work and research at the same time. I am used to a busy schedule and can stay calm under pressure. I believe pressure makes me more efficient.`,
+   azh:`能。从大二开始我就同时进行学业、学生工作和科研，习惯了忙碌的节奏，能在压力下保持冷静。我相信压力让我更高效。`},
+  {part:"个人素质", en:"What do you do in your spare time?", zh:"你空闲时间做什么？",
+   aen:`I usually do sports like running, and sometimes I read papers or books about transportation and technology. I also like to review what I learned and summarize my experience, which helps me improve continuously.`,
+   azh:`我通常做跑步等运动，有时读交通和科技类论文书籍。我也喜欢复盘总结学过的内容，这帮助我持续进步。`},
+  // Part 9
+  {part:"行业认知", en:"How do you see the future of intelligent transportation?", zh:"你如何看待智能交通的未来？",
+   aen:`I think intelligent transportation is moving from informatization to intelligence. The perception layer uses multi-sensor fusion for full-scene sensing, the decision layer uses AI models, and applications like vehicle-road cooperation and autonomous driving are landing. Data is the core driving force, and safety and efficiency are the eternal themes.`,
+   azh:`我认为智能交通正从信息化走向智能化。感知层用多传感器融合实现全场景感知，决策层用AI模型，车路协同和自动驾驶等应用正在落地。数据是核心驱动力，安全与效率是永恒主题。`},
+  {part:"行业认知", en:"What frontier technologies do you know in transportation?", zh:"你知道交通领域哪些前沿技术？",
+   aen:`I know multi-sensor fusion perception, radar-camera fusion, large AI models in transportation, vehicle-road-cloud integration, digital twin and autonomous driving. These technologies are changing how we design and operate transportation systems.`,
+   azh:`我知道多传感器融合感知、雷视融合、交通大模型、车路云一体化、数字孪生和自动驾驶。这些技术正在改变交通系统的设计和运营方式。`},
+  {part:"行业认知", en:"How can AI help traffic safety?", zh:"人工智能如何帮助交通安全？",
+   aen:`AI can detect dangerous situations automatically, for example by analyzing real-time video and radar data to calculate collision risk and send warnings. AI can also learn from historical accident data to predict high-risk areas and periods, helping us prevent accidents before they happen.`,
+   azh:`AI能自动检测危险情况，例如分析实时视频和雷达数据计算碰撞风险并发出预警。AI还能从历史事故数据中学习，预测高风险区域和时段，帮助我们预防事故。`},
+  // Part 10
+  {part:"结尾反问", en:"Do you have any questions for us?", zh:"你有什么问题想问我们吗？",
+   aen:`Thank you, professors. My question is: if I have the chance to join the group, what should I prepare before the graduate study starts, such as some tools or courses, so that I can adapt to the research faster?`,
+   azh:`谢谢老师。我的问题是：如果我有幸加入课题组，入学前需要提前准备哪些工具或课程，以便更快适应科研？`},
+  {part:"结尾反问", en:"Any other questions?", zh:"还有其他问题吗？",
+   aen:`Thank you. I am also curious about the main research topics of the group recently, and what basic work a new graduate student usually starts with.`,
+   azh:`谢谢。我还想了解课题组近期主要的研究课题，以及新生一般从哪些基础工作入手。`},
+  // Part 12
+  {part:"高频通用", en:"Please describe yourself in three words.", zh:"请用三个词形容你自己。",
+   aen:`I would describe myself in three words: responsible, hard-working and curious. I take my tasks seriously, I work steadily toward my goals, and I always want to learn new things about data and transportation.`,
+   azh:`我会用三个词形容自己：负责、勤奋、好奇。我认真对待任务，脚踏实地朝目标努力，并且总想学习数据和交通方面的新知识。`},
+  {part:"高频通用", en:"What is your greatest achievement?", zh:"你最大的成就是什么？",
+   aen:`My greatest achievement is finishing the traffic accident analysis project. I cleaned more than 60,000 records, built machine learning models by myself, and finally made a traffic safety evaluation system. This project showed that I can complete a whole research task independently.`,
+   azh:`我最大的成就是完成了交通事故分析项目。我清洗了6万多条数据，独立构建机器学习模型，最终做出交通安全评估体系。这个项目证明我能独立完成完整的研究任务。`},
+  {part:"高频通用", en:"What is your biggest failure?", zh:"你最大的失败是什么？",
+   aen:`My biggest failure happened in my first project presentation. I was too nervous and did not explain the model clearly. I learned that doing research well is not enough; expressing ideas clearly is also important. Since then, I have practiced presenting many times and improved a lot.`,
+   azh:`我最大的失败发生在第一次项目汇报时。我太紧张，模型没有讲清楚。我学到研究做得好还不够，清晰表达同样重要。从那以后我多次练习汇报，进步很大。`},
+  {part:"高频通用", en:"Why should we admit you?", zh:"为什么我们应该录取你？",
+   aen:`First, I have a solid academic foundation, ranking 5th out of 80 students. Second, I have complete project experience in machine learning and traffic data. Third, I am responsible and work hard. I believe I can contribute to the group and grow quickly under your guidance.`,
+   azh:`第一，我学业基础扎实，专业排名5/80。第二，我有机器学习与交通数据的完整项目经历。第三，我做事负责、肯下功夫。我相信我能为课题组做贡献，并在老师指导下快速成长。`},
+  {part:"高频通用", en:"What makes you different from other applicants?", zh:"你和其他申请者有什么不同？",
+   aen:`I think I combine research experience with student work experience. I have done a real project from data cleaning to model building, so I know the whole process of research. Meanwhile, I served as a class monitor and organized many activities, so I am good at communication and teamwork.`,
+   azh:`我认为我的不同在于同时具备科研和学生工作经历。我从数据清洗到建模完整做过真实项目，了解研究全过程；同时我担任过学习委员、组织过许多活动，善于沟通和团队协作。`},
+  {part:"高频通用", en:"What are your short-term and long-term goals?", zh:"你的短期和长期目标是什么？",
+   aen:`In the short term, I want to finish my master's study and publish a good paper on intelligent transportation. In the long term, I hope to become a professional in intelligent transportation and use data and AI to make transportation safer and more efficient.`,
+   azh:`短期目标是在硕士阶段做出成果，在智能交通方向发表一篇好论文。长期目标是成为智能交通领域的专业人才，用数据和AI让交通更安全、更高效。`},
+  {part:"高频通用", en:"How do you evaluate your college life?", zh:"你如何评价你的大学生活？",
+   aen:`My college life was busy but meaningful. I balanced study, student work and research projects. I kept a good academic ranking, finished a machine learning project, and improved my communication skills. I have grown a lot during these three years.`,
+   azh:`我的大学生活忙碌而充实。我平衡了学业、学生工作和科研项目，保持了良好的成绩排名，完成了机器学习项目，也提升了沟通能力。这三年我成长了很多。`},
+  {part:"高频通用", en:"What was the biggest challenge in your college life?", zh:"大学生活中最大的挑战是什么？",
+   aen:`The biggest challenge was handling courses, student work and research at the same time. I solved it by making a weekly plan, setting priorities, and finishing tasks one by one. This experience taught me good time management.`,
+   azh:`最大的挑战是同时应对课程、学生工作和科研。我的办法是制定每周计划、分清优先级、一件件完成任务。这段经历让我学会了时间管理。`},
+  {part:"高频通用", en:"Who is the person you admire most?", zh:"你最敬佩的人是谁？",
+   aen:`I admire my parents most. They are ordinary workers, but they are honest and hard-working, and they always support my study. They taught me that as long as I keep working hard, I can make progress step by step.`,
+   azh:`我最敬佩我的父母。他们是普通劳动者，但诚实勤奋，一直支持我的学业。他们教会我只要持续努力，就能一步步进步。`},
+  {part:"高频通用", en:"What is your favorite book?", zh:"你最喜欢的书是什么？",
+   aen:`My favorite book is about intelligent transportation and data analysis. It showed me how data can change the way cities move, and it strengthened my decision to study intelligent transportation in graduate school.`,
+   azh:`我最喜欢的书是关于智能交通和数据分析的。它让我看到数据如何改变城市的运行方式，也坚定了我读研选择智能交通方向的决心。`},
+  {part:"高频通用", en:"What do you expect from your graduate life?", zh:"你对研究生生活有什么期待？",
+   aen:`I expect to learn systematic knowledge, join real research projects, and improve my problem-solving ability. I also want to learn from my supervisor and senior classmates, and finally become an independent researcher.`,
+   azh:`我期待系统学习知识、参与真实科研项目、提升解决问题的能力。我也想向导师和师兄师姐学习，最终成为独立的研究者。`},
+  {part:"高频通用", en:"What have you prepared for your graduate study?", zh:"你为读研做了哪些准备？",
+   aen:`I learned Python and machine learning through my project. I read English papers every week to improve my reading ability. I am also learning the basics of deep learning and multi-sensor fusion for my research direction.`,
+   azh:`我通过项目学会了Python和机器学习，每周阅读英文论文提升阅读能力，还在提前学习深度学习和多传感器融合的基础知识，为研究方向做准备。`},
+  {part:"高频通用", en:"How do you view failure?", zh:"你如何看待失败？",
+   aen:`I think failure is a normal part of growth. When I fail, I first find out the reason, then make a plan to improve, and try again. Every failure taught me something, and I believe the key is never to give up.`,
+   azh:`我认为失败是成长中正常的一部分。失败时我先找原因，再制定改进计划，然后重新尝试。每次失败都让我学到东西，关键是永不放弃。`},
+  {part:"高频通用", en:"What qualities should a good graduate student have?", zh:"一名优秀的研究生应具备什么品质？",
+   aen:`I think a good graduate student needs curiosity, patience, honesty and teamwork. Curiosity drives exploration, patience helps face difficulties in research, honesty is the base of academic work, and teamwork lets us learn from others.`,
+   azh:`我认为优秀研究生要有好奇心、耐心、诚实和合作精神。好奇心驱动探索，耐心帮助我们面对科研困难，诚实是学术的底线，合作让我们向他人学习。`},
+  {part:"高频通用", en:"What will you do if you are not admitted?", zh:"如果这次没有被录取，你会怎么办？",
+   aen:`Of course I hope to be admitted. But if not, I will not give up. I will keep improving my research ability and English, and try again next year. My goal of working in intelligent transportation will never change.`,
+   azh:`我当然希望能被录取。但如果没被录取，我不会放弃。我会继续提升科研能力和英语，明年再努力。我投身智能交通的目标不会改变。`},
+  {part:"高频通用", en:"How do you improve your English?", zh:"你是如何提高英语的？",
+   aen:`I read English papers and textbooks every week to improve my reading. I also listen to English audio and practice speaking by reading aloud. I know my English is not perfect, so I keep practicing every day.`,
+   azh:`我每周阅读英文论文和教材提升阅读，也会听英语音频，通过朗读练习口语。我知道自己英语还不够好，所以坚持每天练习。`}
+];
+
+const els = {
+  counter:document.getElementById("counter"),
+  stage:document.getElementById("stage"),
+  listening:document.getElementById("listening"),
+  kicker:document.getElementById("kicker"),
+  question:document.getElementById("question"),
+  qzh:document.getElementById("qzh"),
+  hint:document.getElementById("hint"),
+  answer:document.getElementById("answer"),
+  answerEn:document.getElementById("answerEn"),
+  answerZh:document.getElementById("answerZh"),
+  speakAnsEn:document.getElementById("speakAnsEn"),
+  speakAnsZh:document.getElementById("speakAnsZh"),
+  drawBtn:document.getElementById("drawBtn"),
+  speakBtn:document.getElementById("speakBtn"),
+  showQBtn:document.getElementById("showQBtn"),
+  revealBtn:document.getElementById("revealBtn"),
+  filters:document.getElementById("filters"),
+  toast:document.getElementById("toast")
+};
+
+let currentFilter = "全部";
+let pool = [];
+let current = null;
+let lastIndex = -1;
+let revealed = false;
+let questionVisible = false;
+
+const parts = ["全部", ...Array.from(new Set(QUESTIONS.map(q=>q.part)))];
+let partCounters = {};
+
+const partNames = {
+  "自我介绍":"自我介绍", "基本信息":"基本信息", "教育背景":"教育背景",
+  "科研项目":"科研项目", "选择动机":"选择动机", "研究生规划":"研究生规划",
+  "专业知识":"专业知识", "个人素质":"个人素质", "行业认知":"行业认知", "结尾反问":"结尾反问"
+};
+
+function buildFilters(){
+  els.filters.innerHTML = "";
+  parts.forEach(p=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (p===currentFilter?" active":"");
+    b.textContent = p;
+    b.onclick = ()=>{
+      currentFilter = p;
+      resetPool();
+      buildFilters();
+      toast(p==="全部" ? "已切换：全部题目" : "已切换：" + p);
+    };
+    els.filters.appendChild(b);
+  });
+}
+
+let drawnCount = 0;
+function resetPool(){
+  const list = currentFilter==="全部" ? QUESTIONS : QUESTIONS.filter(q=>q.part===currentFilter);
+  pool = list.map((_,i)=>i);
+  lastIndex = -1;
+  drawnCount = 0;
+  updateCounter();
+}
+
+function updateCounter(){
+  const total = currentFilter==="全部" ? QUESTIONS.length : QUESTIONS.filter(q=>q.part===currentFilter).length;
+  els.counter.textContent = `${pool.length} 待抽 · 共 ${total}`;
+}
+
+function pick(){
+  if(pool.length === 0){
+    resetPool();
+    toast("已抽完一轮，重新洗牌");
+  }
+  const r = Math.floor(Math.random()*pool.length);
+  const idx = pool.splice(r,1)[0];
+  lastIndex = idx;
+  return idx;
+}
+
+/* ---------- Speech ---------- */
+let voices = [];
+function loadVoices(){
+  const vs = speechSynthesis.getVoices();
+  if(vs.length) voices = vs;
+}
+if("speechSynthesis" in window){
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+function getVoice(lang){
+  if(!voices.length) return null;
+  if(/^zh/i.test(lang)){
+    return voices.find(v=>/^zh-CN/i.test(v.lang)) ||
+           voices.find(v=>/^zh/i.test(v.lang)) || null;
+  }
+  return voices.find(v=>/en-US/i.test(v.lang) && /(Samantha|Alex|Ava|Allison|Google US English|Microsoft Aria|Microsoft Jenny)/i.test(v.name)) ||
+         voices.find(v=>/en-US/i.test(v.lang)) ||
+         voices.find(v=>/^en/i.test(v.lang)) || null;
+}
+function speak(text, lang){
+  if(!("speechSynthesis" in window)) { toast("当前浏览器不支持语音朗读"); return; }
+  lang = lang || "en-US";
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  u.rate = /^zh/i.test(lang) ? 1 : 0.92;
+  u.pitch = 1;
+  u.volume = 1;
+  const v = getVoice(lang);
+  if(v) u.voice = v;
+  // slight delay avoids Chrome dropping the first utterance
+  setTimeout(()=>speechSynthesis.speak(u), 60);
+}
+
+/* ---------- Render ---------- */
+function animate(el){
+  el.classList.remove("anim-in");
+  void el.offsetWidth;
+  el.classList.add("anim-in");
+}
+
+function draw(){
+  hideAnswer();
+  const idx = pick();
+  current = QUESTIONS[idx];
+  drawnCount++;
+  concealQuestion();
+  els.question.classList.remove("idle");
+  els.question.textContent = current.en;
+  els.qzh.textContent = current.zh;
+  els.kicker.textContent = "Question " + drawnCount + " / " + poolLengthFor(currentFilter);
+  els.kicker.classList.add("show");
+  els.hint.innerHTML = '<span class="pulse"></span>请先口头作答，再决定是否看参考答案';
+  els.speakBtn.disabled = false;
+  els.showQBtn.disabled = false;
+  els.showQBtn.textContent = "显示题目";
+  els.revealBtn.disabled = false;
+  els.drawBtn.textContent = "换一题";
+  updateCounter();
+  speak(current.en);
+}
+
+function concealQuestion(){
+  questionVisible = false;
+  els.stage.classList.add("listening-mode");
+}
+
+function showQuestion(){
+  questionVisible = true;
+  els.stage.classList.remove("listening-mode");
+  els.qzh.classList.add("show");
+  els.showQBtn.textContent = "隐藏题目";
+  animate(els.question);
+  animate(els.qzh);
+}
+
+els.showQBtn.onclick = ()=>{
+  if(!current) return;
+  if(questionVisible){
+    concealQuestion();
+    els.showQBtn.textContent = "显示题目";
+  } else {
+    showQuestion();
+    els.showQBtn.textContent = "隐藏题目";
+  }
+};
+
+function poolLengthFor(f){
+  if(f==="全部") return QUESTIONS.length;
+  return QUESTIONS.filter(q=>q.part===f).length;
+}
+
+function reveal(){
+  if(!current) return;
+  revealed = true;
+  showQuestion();
+  els.answerEn.textContent = current.aen;
+  els.answerZh.textContent = current.azh;
+  els.answer.classList.add("open");
+  els.revealBtn.textContent = "隐藏参考答案";
+  els.answer.scrollTop = 0;
+  animate(els.answer.querySelectorAll(".card")[0]);
+  animate(els.answer.querySelectorAll(".card")[1]);
+}
+
+function hideAnswer(){
+  revealed = false;
+  els.answer.classList.remove("open");
+  els.revealBtn.textContent = "显示参考答案";
+}
+
+els.drawBtn.onclick = draw;
+
+els.speakBtn.onclick = ()=>{
+  if(current) speak(current.en);
+};
+
+els.speakAnsEn.onclick = ()=>{
+  if(current) speak(current.aen, "en-US");
+};
+
+els.speakAnsZh.onclick = ()=>{
+  if(current) speak(current.azh, "zh-CN");
+};
+
+els.revealBtn.onclick = ()=>{
+  if(!current) return;
+  if(revealed) hideAnswer(); else reveal();
+};
+
+document.addEventListener("keydown", (e)=>{
+  if(e.code === "Space"){ e.preventDefault(); draw(); }
+  else if(e.key === "r" || e.key === "R"){ els.revealBtn.click(); }
+  else if(e.key === "s" || e.key === "S"){ els.speakBtn.click(); }
+  else if(e.key === "h" || e.key === "H"){ els.showQBtn.click(); }
+});
+
+let toastTimer;
+function toast(msg){
+  els.toast.textContent = msg;
+  els.toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>els.toast.classList.remove("show"), 1600);
+}
+
+buildFilters();
+resetPool();
+</script>
+</body>
+</html>
