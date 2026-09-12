@@ -149,6 +149,17 @@
   .mini:active{transform:scale(.94)}
   .card p{font-size:clamp(15px,1.9vw,18px);line-height:1.72;color:#e8e8ed;letter-spacing:.005em}
   .card p.zh-text{color:#c7c7cc}
+  .card textarea.answer-text{
+    display:block;width:100%;background:transparent;border:0;outline:none;resize:none;
+    font:inherit;font-family:inherit;font-size:clamp(15px,1.9vw,18px);line-height:1.72;
+    color:#e8e8ed;letter-spacing:.005em;overflow:hidden;
+    field-sizing:content;min-height:1.72em;border-radius:10px;
+    transition:background .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .card textarea.answer-text:hover{background:rgba(255,255,255,.03)}
+  .card textarea.answer-text:focus{background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(41,151,255,.55)}
+  .card textarea.zh-text{color:#c7c7cc}
+  .trans-status{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin-left:2px}
 
   footer{
     position:relative;z-index:2;
@@ -220,11 +231,11 @@
   <section class="answer" id="answer">
     <div class="card">
       <div class="label">Reference Answer · English<button class="mini" id="speakAnsEn">朗读</button></div>
-      <p id="answerEn"></p>
+      <textarea class="answer-text" id="answerEn" spellcheck="false"></textarea>
     </div>
     <div class="card">
-      <div class="label zh">参考译文 · 中文<button class="mini" id="speakAnsZh">朗读</button></div>
-      <p class="zh-text" id="answerZh"></p>
+      <div class="label zh">参考译文 · 中文<span class="trans-status" id="transStatus"></span><button class="mini" id="resetAns">还原</button><button class="mini" id="speakAnsZh" style="margin-left:0">朗读</button></div>
+      <textarea class="answer-text zh-text" id="answerZh" spellcheck="false"></textarea>
     </div>
   </section>
 </main>
@@ -459,8 +470,10 @@ const els = {
   answer:document.getElementById("answer"),
   answerEn:document.getElementById("answerEn"),
   answerZh:document.getElementById("answerZh"),
+  transStatus:document.getElementById("transStatus"),
   speakAnsEn:document.getElementById("speakAnsEn"),
   speakAnsZh:document.getElementById("speakAnsZh"),
+  resetAns:document.getElementById("resetAns"),
   drawBtn:document.getElementById("drawBtn"),
   speakBtn:document.getElementById("speakBtn"),
   showQBtn:document.getElementById("showQBtn"),
@@ -573,6 +586,165 @@ function speak(text, lang){
   if(busy) setTimeout(fire, 80); else fire();
 }
 
+/* ---------- Answer editing + auto translate (zh -> en) ---------- */
+const OVERRIDE_KEY = "english_qa_overrides_v1";
+const ORIGINALS = QUESTIONS.map(q=>({ aen:q.aen, azh:q.azh }));
+let overrides = {};
+
+function loadOverrides(){
+  try{ overrides = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}") || {}; }
+  catch(e){ overrides = {}; }
+  Object.keys(overrides).forEach(k=>{
+    const q = QUESTIONS[Number(k)];
+    if(!q) return;
+    const o = overrides[k] || {};
+    if(typeof o.aen === "string") q.aen = o.aen;
+    if(typeof o.azh === "string") q.azh = o.azh;
+  });
+}
+
+function persistCurrent(notify){
+  if(!current) return;
+  const i = QUESTIONS.indexOf(current);
+  if(i < 0) return;
+  overrides[i] = { aen: current.aen, azh: current.azh };
+  try{ localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides)); }
+  catch(e){ toast("保存失败：本地存储不可用"); return; }
+  if(notify) toast("修改已保存到本地");
+}
+
+function autoGrow(el){
+  if(!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+function setTransStatus(msg){ if(els.transStatus) els.transStatus.textContent = msg || ""; }
+
+let translator = null;
+let translatorTried = false;
+let translatorPromise = null;
+const TRANS_LANGS = [["zh","en"],["zh-Hans","en"],["zh-CN","en-US"]];
+
+function translatorSupported(){
+  return !!self.isSecureContext && (("Translator" in self) || ("translation" in self && typeof self.translation.createTranslator === "function"));
+}
+
+function onDownloadProgress(m){
+  if(!m || typeof m.addEventListener !== "function") return;
+  m.addEventListener("downloadprogress", e=>{
+    setTransStatus("下载翻译模型 " + Math.round((e.loaded || 0) * 100) + "%");
+  });
+}
+
+async function ensureTranslator(){
+  if(translator) return translator;
+  if(translatorTried) return null;
+  if(!translatorSupported()){
+    translatorTried = true;
+    setTransStatus("");
+    toast("当前浏览器不支持内置翻译，请用 Chrome/Edge 138+");
+    return null;
+  }
+  if(translatorPromise) return translatorPromise;
+  translatorPromise = (async ()=>{
+    for(const [src, tgt] of TRANS_LANGS){
+      try{
+        if("Translator" in self){
+          const avail = await Translator.availability({sourceLanguage:src, targetLanguage:tgt});
+          if(avail === "unavailable") continue;
+          setTransStatus(avail === "available" ? "翻译就绪" : "正在下载翻译模型…");
+          translator = await Translator.create({sourceLanguage:src, targetLanguage:tgt, monitor:onDownloadProgress});
+        } else {
+          const avail = await self.translation.canTranslate({sourceLanguage:src, targetLanguage:tgt});
+          if(avail === "no") continue;
+          setTransStatus(avail === "readily" ? "翻译就绪" : "正在下载翻译模型…");
+          translator = await self.translation.createTranslator({sourceLanguage:src, targetLanguage:tgt});
+        }
+        setTransStatus("翻译就绪");
+        return translator;
+      }catch(e){ /* 换下一组语言代码重试 */ }
+    }
+    translatorTried = true;
+    setTransStatus("");
+    toast("内置翻译不可用，请检查浏览器版本或语言包");
+    return null;
+  })();
+  const res = await translatorPromise;
+  translatorPromise = null;
+  return res;
+}
+
+function warmTranslator(){ ensureTranslator(); }
+
+async function translateZhToEn(){
+  if(!current) return;
+  const text = els.answerZh.value.trim();
+  if(!text || !/[\u4e00-\u9fa5]/.test(text)){ setTransStatus(""); return; }
+  const t = await ensureTranslator();
+  if(!t) return;
+  setTransStatus("正在翻译…");
+  try{
+    const out = await t.translate(text);
+    if(els.answerZh.value.trim() !== text) return; // 期间又改过，放弃这次结果
+    els.answerEn.value = out;
+    current.aen = out;
+    current.azh = els.answerZh.value;
+    autoGrow(els.answerEn);
+    persistCurrent(false);
+    setTransStatus("已自动翻译");
+  }catch(e){
+    setTransStatus("翻译失败");
+    toast("翻译失败：" + (e && e.message ? e.message : e));
+  }
+}
+
+let zhTimer = null;
+els.answerZh.addEventListener("input", ()=>{
+  if(!current) return;
+  current.azh = els.answerZh.value;
+  persistCurrent(false);
+  autoGrow(els.answerZh);
+  clearTimeout(zhTimer);
+  setTransStatus("正在翻译…");
+  zhTimer = setTimeout(translateZhToEn, 800);
+});
+els.answerZh.addEventListener("blur", ()=>{
+  if(!current) return;
+  clearTimeout(zhTimer);
+  current.azh = els.answerZh.value;
+  persistCurrent(true);
+});
+
+els.answerEn.addEventListener("input", ()=>{
+  if(!current) return;
+  current.aen = els.answerEn.value;
+  persistCurrent(false);
+  autoGrow(els.answerEn);
+});
+els.answerEn.addEventListener("blur", ()=>{
+  if(!current) return;
+  current.aen = els.answerEn.value;
+  persistCurrent(true);
+});
+
+function resetCurrentAnswer(){
+  if(!current) return;
+  const i = QUESTIONS.indexOf(current);
+  if(i < 0) return;
+  current.aen = ORIGINALS[i].aen;
+  current.azh = ORIGINALS[i].azh;
+  els.answerEn.value = current.aen;
+  els.answerZh.value = current.azh;
+  autoGrow(els.answerEn);
+  autoGrow(els.answerZh);
+  delete overrides[i];
+  try{ localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides)); }catch(e){}
+  setTransStatus("");
+  toast("已还原为原文");
+}
+els.resetAns.addEventListener("click", resetCurrentAnswer);
+
 /* ---------- Render ---------- */
 function animate(el){
   el.classList.remove("anim-in");
@@ -635,13 +807,16 @@ function reveal(){
   if(!current) return;
   revealed = true;
   showQuestion();
-  els.answerEn.textContent = current.aen;
-  els.answerZh.textContent = current.azh;
+  els.answerEn.value = current.aen;
+  els.answerZh.value = current.azh;
+  autoGrow(els.answerEn);
+  autoGrow(els.answerZh);
   els.answer.classList.add("open");
   els.revealBtn.textContent = "隐藏参考答案";
   els.answer.scrollTop = 0;
   animate(els.answer.querySelectorAll(".card")[0]);
   animate(els.answer.querySelectorAll(".card")[1]);
+  warmTranslator();
 }
 
 function hideAnswer(){
@@ -684,6 +859,7 @@ function toast(msg){
   toastTimer = setTimeout(()=>els.toast.classList.remove("show"), 1600);
 }
 
+loadOverrides();
 buildFilters();
 resetPool();
 </script>
