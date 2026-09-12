@@ -549,16 +549,28 @@ function getVoice(lang){
 function speak(text, lang){
   if(!("speechSynthesis" in window)) { toast("当前浏览器不支持语音朗读"); return; }
   lang = lang || "en-US";
-  speechSynthesis.cancel();
+  const busy = speechSynthesis.speaking || speechSynthesis.pending;
+  if(busy) speechSynthesis.cancel();
+
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
   u.rate = /^zh/i.test(lang) ? 1 : 0.92;
   u.pitch = 1;
   u.volume = 1;
+  loadVoices();
   const v = getVoice(lang);
   if(v) u.voice = v;
-  // slight delay avoids Chrome dropping the first utterance
-  setTimeout(()=>speechSynthesis.speak(u), 60);
+  u.onerror = e=>{
+    if(e && e.error && e.error !== "interrupted" && e.error !== "canceled") toast("朗读失败：" + e.error);
+  };
+
+  const fire = ()=>{
+    try{ speechSynthesis.resume(); }catch(e){}
+    speechSynthesis.speak(u);
+  };
+  // 没有正在朗读时同步调用，保证仍在用户点击的手势调用栈内（移动端/Safari 必须）
+  // 仅当需要打断上一句时才延迟，避免 Chrome 丢弃新句子
+  if(busy) setTimeout(fire, 80); else fire();
 }
 
 /* ---------- Render ---------- */
